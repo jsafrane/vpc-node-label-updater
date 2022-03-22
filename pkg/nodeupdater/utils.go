@@ -18,6 +18,7 @@
 package nodeupdater
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	errors "errors"
@@ -34,6 +35,9 @@ import (
 	"github.com/IBM/ibmcloud-volume-interface/config"
 	"github.com/IBM/ibmcloud-volume-interface/provider/iam"
 	"go.uber.org/zap"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -48,15 +52,85 @@ const (
 	maxAttempts            = 30
 	retryInterval          = "10s"
 	vpcBlockLabelKey       = "vpc-block-csi-driver-labels"
+	iamClientID            = "bx"
+	iamClientSecret        = "bx"
+	providerType           = "g2"
+
+	// KubeSystemNS is the constant for kube-system namespace.
+	KubeSystemNS string = "kube-system"
+
+	// StorageSecretStore is the storage secret that stores storage related details such as
+	// containers private api route, etc.
+	StorageSecretStore string = "storage-secret-store"
+
+	// StorageStoreMapKey ...
+	StorageStoreMapKey string = "slclient.toml"
+
+	//IamAPIKeyConf is the env that stores the value of iam_api_key
+	G2APIKeyConf string = "g2_api_key"
+
+	//G2TokenExchangeEndpoinrURLConf is the env that stores the values of g2_token_exchange_endpoint_url
+	G2TokenExchangeEndpoinrURLConf string = "g2_token_exchange_endpoint_url"
+
+	//G2RiaasEndpointURLConf is the env that stores the values of g2_riaas_endpoint_url
+	G2RiaasEndpointURLConf string = "g2_riaas_endpoint_url"
+
+	//G2ResourceGroupIDConf is the env that stores the values of g2_riaas_endpoint_url
+	G2ResourceGroupIDConf string = "g2_resource_group_id"
 )
+
+// GetStorageSecretStore ...
+func GetStorageSecretStore(k8sClient kubernetes.Interface) (*v1.Secret, error) {
+	return k8sClient.CoreV1().Secrets(KubeSystemNS).Get(context.TODO(), StorageSecretStore, metav1.GetOptions{})
+}
 
 // ReadStorageSecretConfiguration ...
 func ReadStorageSecretConfiguration(ctxLogger *zap.Logger) (*StorageSecretConfig, error) {
-	configPath := filepath.Join(config.GetConfPathDir(), configFileName)
-	conf, err := readConfig(configPath, ctxLogger)
+	var conf *config.Config
+	var k8sClient kubernetes.Interface
+	storageSecretStore, err := GetStorageSecretStore(k8sClient)
 	if err != nil {
-		ctxLogger.Info("Error loading secret configuration")
+		ctxLogger.Error("Storage secret store not present", zap.Error(err))
 		return nil, err
+	}
+
+	// extract storage config from the secret
+	_, okSLClient := storageSecretStore.Data[StorageStoreMapKey]
+	if !okSLClient {
+		apiKey, okAPIKey := storageSecretStore.Data[G2APIKeyConf]
+		g2TokenExchangeEndpoinrURL, okG2TokenExchangeEndpoinrURL := storageSecretStore.Data[G2TokenExchangeEndpoinrURLConf]
+		g2RiaasEndpointURL, okG2RiaasEndpointURL := storageSecretStore.Data[G2RiaasEndpointURLConf]
+		g2ResourceGroupID, okG2ResourceGroupIDConf := storageSecretStore.Data[G2ResourceGroupIDConf]
+		if okAPIKey {
+			conf.VPC.G2APIKey = string(apiKey)
+		}
+		if okG2TokenExchangeEndpoinrURL {
+			conf.VPC.G2TokenExchangeURL = string(g2TokenExchangeEndpoinrURL)
+		}
+		if okG2RiaasEndpointURL {
+			conf.VPC.G2EndpointURL = string(g2RiaasEndpointURL)
+		}
+		if okG2ResourceGroupIDConf {
+			conf.VPC.G2ResourceGroupID = string(g2ResourceGroupID)
+		}
+
+		conf.VPC.IamClientID = iamClientID
+		conf.VPC.IamClientSecret = iamClientSecret
+		conf.VPC.VPCBlockProviderType = providerType
+		conf.Server.DebugTrace = false
+
+	} else {
+		configPath := filepath.Join(config.GetConfPathDir(), configFileName)
+		conf, err = readConfig(configPath, ctxLogger)
+		if err != nil {
+			ctxLogger.Info("Error loading secret configuration")
+			return nil, err
+		}
+	}
+
+	// Throw error if config is empty
+	if conf == nil {
+		return nil, fmt.Errorf("Unable to load config")
 	}
 
 	riaasInstanceURL, err := url.Parse(fmt.Sprintf("%s/v1/instances?generation=%s&version=%s", conf.VPC.G2EndpointURL, vpcGeneration, vpcRiaasVersion))
@@ -128,7 +202,7 @@ func readConfig(confPath string, logger *zap.Logger) (*config.Config, error) {
 
 	// Parse config file
 	conf := config.Config{
-		IKS: &config.IKSConfig{}, // IKS block may not be populated in secrete toml. Make sure its not nil
+		IKS: &config.IKSConfig{}, // IKS block may not be populated in secret toml. Make sure its not nil
 	}
 	logger.Info("parsing conf file", zap.String("confpath", confPath))
 	err := parseConfig(confPath, &conf, logger)
