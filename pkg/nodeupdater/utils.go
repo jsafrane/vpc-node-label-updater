@@ -85,17 +85,11 @@ func GetStorageSecretStore(k8sClient kubernetes.Interface) (*v1.Secret, error) {
 }
 
 // ReadStorageSecretConfiguration ...
-func ReadStorageSecretConfiguration(ctxLogger *zap.Logger) (*StorageSecretConfig, error) {
+func ReadStorageSecretConfiguration(storageSecretStore *v1.Secret, ctxLogger *zap.Logger) (*StorageSecretConfig, error) {
 	var conf *config.Config
-	var k8sClient kubernetes.Interface
-	storageSecretStore, err := GetStorageSecretStore(k8sClient)
-	if err != nil {
-		ctxLogger.Error("Storage secret store not present", zap.Error(err))
-		return nil, err
-	}
-
+	var err error
 	// extract storage config from the secret
-	_, okSLClient := storageSecretStore.Data[StorageStoreMapKey]
+	_, okSLClient := storageSecretStore.StringData[StorageStoreMapKey]
 	if !okSLClient {
 		apiKey, okAPIKey := storageSecretStore.Data[G2APIKeyConf]
 		g2TokenExchangeEndpoinrURL, okG2TokenExchangeEndpoinrURL := storageSecretStore.Data[G2TokenExchangeEndpoinrURLConf]

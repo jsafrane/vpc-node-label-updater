@@ -1,0 +1,703 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>nodeupdater: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/IBM/vpc-node-label-updater/pkg/nodeupdater/fake.go (92.3%)</option>
+				
+				<option value="file1">github.com/IBM/vpc-node-label-updater/pkg/nodeupdater/node_label.go (21.4%)</option>
+				
+				<option value="file2">github.com/IBM/vpc-node-label-updater/pkg/nodeupdater/utils.go (60.5%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">no coverage</span>
+				<span class="cov1">low coverage</span>
+				<span class="cov2">*</span>
+				<span class="cov3">*</span>
+				<span class="cov4">*</span>
+				<span class="cov5">*</span>
+				<span class="cov6">*</span>
+				<span class="cov7">*</span>
+				<span class="cov8">*</span>
+				<span class="cov9">*</span>
+				<span class="cov10">high coverage</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">/**
+ * Copyright 2020 IBM Corp.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+//Package nodeupdater ...
+package nodeupdater
+
+import (
+        "bytes"
+        "context"
+        errors "errors"
+        "fmt"
+        "net/url"
+        "strings"
+        "testing"
+
+        "go.uber.org/zap"
+        "go.uber.org/zap/zapcore"
+        v1 "k8s.io/api/core/v1"
+        metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+        "k8s.io/client-go/kubernetes"
+)
+
+// MockVPCNodeLabelUpdater ...
+type MockVPCNodeLabelUpdater struct {
+        Node                *v1.Node
+        K8sClient           *kubernetes.Clientset
+        Logger              *zap.Logger
+        StorageSecretConfig *StorageSecretConfig
+}
+
+// GetTestLogger ...
+func GetTestLogger(t *testing.T) (logger *zap.Logger, teardown func()) <span class="cov10" title="15">{
+        atom := zap.NewAtomicLevel()
+        atom.SetLevel(zap.DebugLevel)
+
+        encoderCfg := zap.NewProductionEncoderConfig()
+        encoderCfg.TimeKey = "timestamp"
+        encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
+
+        buf := &amp;bytes.Buffer{}
+
+        logger = zap.New(
+                zapcore.NewCore(
+                        zapcore.NewJSONEncoder(encoderCfg),
+                        zapcore.AddSync(buf),
+                        atom,
+                ),
+                zap.AddCaller(),
+        )
+
+        teardown = func() </span><span class="cov10" title="15">{
+                _ = logger.Sync() // #nosec G104: flush any buffered log entries only on best-effort basis.Error cannot be usefully handled.
+                if t.Failed() </span><span class="cov0" title="0">{
+                        t.Log(buf)
+                }</span>
+        }
+        <span class="cov10" title="15">return</span>
+}
+
+func initMockNodeLabelUpdater(t *testing.T) *MockVPCNodeLabelUpdater <span class="cov6" title="5">{
+        logger, teardown := GetTestLogger(t)
+        defer teardown()
+        mockVPCNodeLabelUpdater := &amp;MockVPCNodeLabelUpdater{
+                Node: &amp;v1.Node{
+                        ObjectMeta: metav1.ObjectMeta{
+                                Name:      "fake-node",
+                                Namespace: "fake",
+                                Labels:    map[string]string{"test": "test"},
+                        },
+                },
+                Logger:              logger,
+                StorageSecretConfig: &amp;StorageSecretConfig{},
+                K8sClient:           nil,
+        }
+        return mockVPCNodeLabelUpdater
+}</span>
+
+// GetWorkerDetails ...
+func (m *MockVPCNodeLabelUpdater) GetWorkerDetails(workerNodeName string) (*NodeInfo, error) <span class="cov6" title="6">{
+        if strings.Contains(workerNodeName, "ip") </span><span class="cov1" title="1">{
+                return m.GetInstanceByIP(workerNodeName)
+        }</span>
+        <span class="cov6" title="5">return m.GetInstanceByName(workerNodeName)</span>
+}
+
+// GetInstancesFromVPC ...
+func (m *MockVPCNodeLabelUpdater) GetInstancesFromVPC(riaasInstanceURL *url.URL) ([]*Instance, error) <span class="cov8" title="9">{
+        fmt.Println(m.StorageSecretConfig.IAMAccessToken)
+        if m.StorageSecretConfig.IAMAccessToken == "" </span><span class="cov3" title="2">{
+                return nil, errors.New("failed to get worker details as instance list is empty")
+        }</span>
+        <span class="cov7" title="7">if riaasInstanceURL.Scheme == "" </span><span class="cov3" title="2">{
+                return nil, errors.New("get \"\": unsupported protocol scheme \"\"")
+        }</span>
+        <span class="cov6" title="5">if strings.Contains(riaasInstanceURL.Host, "invalid") </span><span class="cov3" title="2">{
+                return nil, errors.New("get \"https://invalid\": dial tcp: lookup invalid")
+        }</span>
+        <span class="cov4" title="3">ins := &amp;Instance{
+                Name: "valid-worker",
+                ID:   "valid-instance-id",
+                PrimaryNetworkInterface: &amp;NetworkInterface{
+                        PrimaryIpv4Address: "valid-worker-ip",
+                },
+        }
+        insL := []*Instance{ins}
+        return insL, nil</span>
+}
+
+// GetInstanceByName ...
+func (m *MockVPCNodeLabelUpdater) GetInstanceByName(workerNodeName string) (*NodeInfo, error) <span class="cov8" title="10">{
+        if strings.Contains(workerNodeName, "invalid") </span><span class="cov3" title="2">{
+                return nil, errors.New("failed to get worker details as instance list is empty")
+        }</span>
+        <span class="cov7" title="8">insL, err := m.GetInstancesFromVPC(m.StorageSecretConfig.RiaasEndpointURL)
+        if err != nil </span><span class="cov6" title="6">{
+                return nil, err
+        }</span>
+        <span class="cov3" title="2">return m.getNodeInfo(insL[0])</span>
+}
+
+// GetInstanceByIP ...
+func (m *MockVPCNodeLabelUpdater) GetInstanceByIP(workerNodeName string) (*NodeInfo, error) <span class="cov6" title="6">{
+        if strings.Contains(workerNodeName, "invalid-ip") </span><span class="cov1" title="1">{
+                return nil, errors.New("failed to get worker details as instance list is empty")
+        }</span>
+        <span class="cov6" title="5">if m.StorageSecretConfig.IAMAccessToken == "" </span><span class="cov1" title="1">{
+                return nil, errors.New("failed to get worker details as instance list is empty")
+        }</span>
+        <span class="cov5" title="4">if m.StorageSecretConfig.RiaasEndpointURL.Scheme == "" </span><span class="cov1" title="1">{
+                return nil, errors.New("get \"\": unsupported protocol scheme \"\"")
+        }</span>
+        <span class="cov4" title="3">if strings.Contains(m.StorageSecretConfig.RiaasEndpointURL.Host, "invalid") </span><span class="cov1" title="1">{
+                return nil, errors.New("get \"https://invalid\": dial tcp: lookup invalid")
+        }</span>
+        <span class="cov3" title="2">if strings.Contains(workerNodeName, "valid-worker-ip") </span><span class="cov3" title="2">{
+                return &amp;NodeInfo{}, nil
+        }</span>
+        <span class="cov0" title="0">return nil, errors.New("")</span>
+}
+
+func (m *MockVPCNodeLabelUpdater) getNodeInfo(instance *Instance) (*NodeInfo, error) <span class="cov3" title="2">{
+        if instance == nil </span><span class="cov0" title="0">{
+                return nil, errors.New("instance is nil")
+        }</span>
+        <span class="cov3" title="2">return &amp;NodeInfo{
+                InstanceID: instance.ID,
+                Zone:       "valid-zone",
+        }, nil</span>
+}
+
+// UpdateNodeLabel ...
+func (m *MockVPCNodeLabelUpdater) UpdateNodeLabel(ctx context.Context, workerNodeName string) (done bool, err error) <span class="cov1" title="1">{
+        if strings.Contains(workerNodeName, "valid") </span><span class="cov1" title="1">{
+                return true, nil
+        }</span>
+        <span class="cov0" title="0">return false, errors.New("")</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">/**
+ * Copyright 2020 IBM Corp.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+//Package nodeupdater ...
+package nodeupdater
+
+import (
+        "context"
+
+        "go.uber.org/zap"
+        v1 "k8s.io/api/core/v1"
+        "k8s.io/apimachinery/pkg/api/errors"
+
+        metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+        "k8s.io/client-go/kubernetes"
+)
+
+// VpcNodeLabelUpdater ...
+type VpcNodeLabelUpdater struct {
+        Node                *v1.Node
+        K8sClient           *kubernetes.Clientset
+        Logger              *zap.Logger
+        StorageSecretConfig *StorageSecretConfig
+}
+
+// UpdateNodeLabel gets the details of the newly added node from riaas and updates the labels.
+// Returns false and err as nil if labels not updated. else returns true
+func (c *VpcNodeLabelUpdater) UpdateNodeLabel(ctx context.Context, workerNodeName string) (done bool, err error) <span class="cov10" title="3">{
+        nodeinfo, err := c.GetWorkerDetails(workerNodeName)
+        if err != nil </span><span class="cov10" title="3">{
+                return false, err
+        }</span>
+
+        <span class="cov0" title="0">c.Node.ObjectMeta.Labels[workerIDLabelKey] = nodeinfo.InstanceID
+        c.Node.ObjectMeta.Labels[failureRegionLabelKey] = nodeinfo.Region
+        c.Node.ObjectMeta.Labels[failureZoneLabelKey] = nodeinfo.Zone
+        c.Node.ObjectMeta.Labels[topologyRegionLabelKey] = nodeinfo.Region
+        c.Node.ObjectMeta.Labels[topologyZoneLabelKey] = nodeinfo.Zone
+        c.Node.ObjectMeta.Labels[vpcBlockLabelKey] = "true"
+
+        _, err = c.K8sClient.CoreV1().Nodes().Update(ctx, c.Node, metav1.UpdateOptions{})
+        if err == nil &amp;&amp; !errors.IsConflict(err) </span><span class="cov0" title="0">{
+                c.Logger.Info("Added required labels for the node, ", zap.Reflect("workerNodeName", workerNodeName))
+                return true, nil
+        }</span>
+
+        <span class="cov0" title="0">return false, err</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">/**
+ * Copyright 2020 IBM Corp.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+//Package nodeupdater ...
+package nodeupdater
+
+import (
+        "context"
+        "encoding/base64"
+        "encoding/json"
+        errors "errors"
+        "fmt"
+        "io/ioutil"
+        "net"
+        "net/http"
+        "net/url"
+        "path/filepath"
+        "strings"
+        "time"
+
+        "github.com/BurntSushi/toml"
+        "github.com/IBM/ibmcloud-volume-interface/config"
+        "github.com/IBM/ibmcloud-volume-interface/provider/iam"
+        "go.uber.org/zap"
+        v1 "k8s.io/api/core/v1"
+        metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+        "k8s.io/client-go/kubernetes"
+)
+
+const (
+        workerIDLabelKey       = "ibm-cloud.kubernetes.io/worker-id"
+        failureRegionLabelKey  = "failure-domain.beta.kubernetes.io/region"
+        failureZoneLabelKey    = "failure-domain.beta.kubernetes.io/zone"
+        topologyRegionLabelKey = "topology.kubernetes.io/region"
+        topologyZoneLabelKey   = "topology.kubernetes.io/zone"
+        configFileName         = "slclient.toml"
+        vpcGeneration          = "2"
+        vpcRiaasVersion        = "2020-01-01"
+        maxAttempts            = 30
+        retryInterval          = "10s"
+        vpcBlockLabelKey       = "vpc-block-csi-driver-labels"
+        iamClientID            = "bx"
+        iamClientSecret        = "bx"
+        providerType           = "g2"
+
+        // KubeSystemNS is the constant for kube-system namespace.
+        KubeSystemNS string = "kube-system"
+
+        // StorageSecretStore is the storage secret that stores storage related details such as
+        // containers private api route, etc.
+        StorageSecretStore string = "storage-secret-store"
+
+        // StorageStoreMapKey ...
+        StorageStoreMapKey string = "slclient.toml"
+
+        //IamAPIKeyConf is the env that stores the value of iam_api_key
+        G2APIKeyConf string = "g2_api_key"
+
+        //G2TokenExchangeEndpoinrURLConf is the env that stores the values of g2_token_exchange_endpoint_url
+        G2TokenExchangeEndpoinrURLConf string = "g2_token_exchange_endpoint_url"
+
+        //G2RiaasEndpointURLConf is the env that stores the values of g2_riaas_endpoint_url
+        G2RiaasEndpointURLConf string = "g2_riaas_endpoint_url"
+
+        //G2ResourceGroupIDConf is the env that stores the values of g2_riaas_endpoint_url
+        G2ResourceGroupIDConf string = "g2_resource_group_id"
+)
+
+// GetStorageSecretStore ...
+func GetStorageSecretStore(k8sClient kubernetes.Interface) (*v1.Secret, error) <span class="cov1" title="1">{
+        return k8sClient.CoreV1().Secrets(KubeSystemNS).Get(context.TODO(), StorageSecretStore, metav1.GetOptions{})
+}</span>
+
+// ReadStorageSecretConfiguration ...
+func ReadStorageSecretConfiguration(storageSecretStore *v1.Secret, ctxLogger *zap.Logger) (*StorageSecretConfig, error) <span class="cov1" title="1">{
+        var conf *config.Config
+        var err error
+        // extract storage config from the secret
+        _, okSLClient := storageSecretStore.StringData[StorageStoreMapKey]
+        if !okSLClient </span><span class="cov0" title="0">{
+                apiKey, okAPIKey := storageSecretStore.Data[G2APIKeyConf]
+                g2TokenExchangeEndpoinrURL, okG2TokenExchangeEndpoinrURL := storageSecretStore.Data[G2TokenExchangeEndpoinrURLConf]
+                g2RiaasEndpointURL, okG2RiaasEndpointURL := storageSecretStore.Data[G2RiaasEndpointURLConf]
+                g2ResourceGroupID, okG2ResourceGroupIDConf := storageSecretStore.Data[G2ResourceGroupIDConf]
+                if okAPIKey </span><span class="cov0" title="0">{
+                        conf.VPC.G2APIKey = string(apiKey)
+                }</span>
+                <span class="cov0" title="0">if okG2TokenExchangeEndpoinrURL </span><span class="cov0" title="0">{
+                        conf.VPC.G2TokenExchangeURL = string(g2TokenExchangeEndpoinrURL)
+                }</span>
+                <span class="cov0" title="0">if okG2RiaasEndpointURL </span><span class="cov0" title="0">{
+                        conf.VPC.G2EndpointURL = string(g2RiaasEndpointURL)
+                }</span>
+                <span class="cov0" title="0">if okG2ResourceGroupIDConf </span><span class="cov0" title="0">{
+                        conf.VPC.G2ResourceGroupID = string(g2ResourceGroupID)
+                }</span>
+
+                <span class="cov0" title="0">conf.VPC.IamClientID = iamClientID
+                conf.VPC.IamClientSecret = iamClientSecret
+                conf.VPC.VPCBlockProviderType = providerType
+                conf.Server.DebugTrace = false</span>
+
+        } else<span class="cov1" title="1"> {
+                configPath := filepath.Join(config.GetConfPathDir(), configFileName)
+                conf, err = readConfig(configPath, ctxLogger)
+                if err != nil </span><span class="cov1" title="1">{
+                        ctxLogger.Info("Error loading secret configuration")
+                        return nil, err
+                }</span>
+        }
+
+        // Throw error if config is empty
+        <span class="cov0" title="0">if conf == nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("Unable to load config")
+        }</span>
+
+        <span class="cov0" title="0">riaasInstanceURL, err := url.Parse(fmt.Sprintf("%s/v1/instances?generation=%s&amp;version=%s", conf.VPC.G2EndpointURL, vpcGeneration, vpcRiaasVersion))
+        if err != nil </span><span class="cov0" title="0">{
+                ctxLogger.Error("Failed to parse riassInstanceURL", zap.Error(err))
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">storageSecretConfig := &amp;StorageSecretConfig{
+                APIKey:              conf.VPC.G2APIKey,
+                IamTokenExchangeURL: fmt.Sprintf("%s/oidc/token", conf.VPC.G2TokenExchangeURL),
+                RiaasEndpointURL:    riaasInstanceURL,
+                BasicAuthString:     fmt.Sprintf("%s:%s", conf.VPC.IamClientID, conf.VPC.IamClientSecret),
+        }
+
+        accessToken, err := storageSecretConfig.GetAccessToken(ctxLogger)
+        if err != nil </span><span class="cov0" title="0">{
+                ctxLogger.Error("Failed to Get IAM access token", zap.Error(err))
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">storageSecretConfig.IAMAccessToken = accessToken
+        return storageSecretConfig, nil</span>
+}
+
+// GetAccessToken ...
+func (secretConfig *StorageSecretConfig) GetAccessToken(ctxLogger *zap.Logger) (string, error) <span class="cov5" title="3">{
+        form := url.Values{}
+        form.Set("grant_type", "urn:ibm:params:oauth:grant-type:apikey")
+        form.Set("apikey", secretConfig.APIKey)
+
+        client := &amp;http.Client{}
+        req, err := http.NewRequest("POST", secretConfig.IamTokenExchangeURL, strings.NewReader(form.Encode())) // URL-encoded payload
+        if err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+
+        <span class="cov5" title="3">req.Header.Add("Authorization", fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(secretConfig.BasicAuthString))))
+        req.Header.Add("Accept", "application/json")
+
+        var res *http.Response
+        err = ErrorRetry(ctxLogger, func() (error, bool) </span><span class="cov5" title="3">{
+                res, err = client.Do(req)               //nolint
+                return err, !iam.IsConnectionError(err) // Skip retry if its not connection error
+        }</span>)
+        <span class="cov5" title="3">if err != nil </span><span class="cov3" title="2">{
+                return "", err
+        }</span>
+        // read response body
+        <span class="cov1" title="1">accessTokenRes, err := ioutil.ReadAll(res.Body)
+        if err != nil </span><span class="cov0" title="0">{
+                ctxLogger.Error("failed to read response body for getting access token in exchange of apikey", zap.Error(err))
+                return "", err
+        }</span>
+        <span class="cov1" title="1">defer res.Body.Close()
+        var accessToken AccessTokenResponse
+        err = json.Unmarshal(accessTokenRes, &amp;accessToken)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", errors.New("failed to unmarshal json response for access token")
+        }</span>
+        <span class="cov1" title="1">ctxLogger.Info("Successfully got access token in exchange of apikey")
+        return accessToken.AccessToken, nil</span>
+}
+
+func readConfig(confPath string, logger *zap.Logger) (*config.Config, error) <span class="cov7" title="5">{
+        // load the default config, if confPath not provided
+        if confPath == "" </span><span class="cov1" title="1">{
+                confPath = config.GetDefaultConfPath()
+        }</span>
+
+        // Parse config file
+        <span class="cov7" title="5">conf := config.Config{
+                IKS: &amp;config.IKSConfig{}, // IKS block may not be populated in secret toml. Make sure its not nil
+        }
+        logger.Info("parsing conf file", zap.String("confpath", confPath))
+        err := parseConfig(confPath, &amp;conf, logger)
+        return &amp;conf, err</span>
+}
+
+func parseConfig(filePath string, conf interface{}, logger *zap.Logger) error <span class="cov8" title="7">{
+        _, err := toml.DecodeFile(filePath, conf)
+        if err != nil </span><span class="cov1" title="1">{
+                logger.Error("Failed to parse config file", zap.Error(err))
+        }</span>
+        <span class="cov8" title="7">return err</span>
+}
+
+// ErrorRetry ...
+func ErrorRetry(logger *zap.Logger, funcToRetry func() (error, bool)) error <span class="cov10" title="9">{
+        var err error
+        var shouldStop bool
+        retryIntervaltime, err := time.ParseDuration(retryInterval)
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Warn("time.ParseDuration failed", zap.Error(err))
+        }</span>
+        <span class="cov10" title="9">for i := 0; ; i++ </span><span class="cov10" title="9">{
+                err, shouldStop = funcToRetry()
+                logger.Debug("Retry Function Result", zap.Error(err), zap.Bool("shouldStop", shouldStop))
+                if shouldStop </span><span class="cov10" title="9">{
+                        break</span>
+                }
+                <span class="cov0" title="0">if err == nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                //Stop if out of retries
+                <span class="cov0" title="0">if i &gt;= (maxAttempts - 1) </span><span class="cov0" title="0">{
+                        break</span>
+                }
+                <span class="cov0" title="0">time.Sleep(retryIntervaltime)
+                logger.Warn("retrying after Error:", zap.Error(err))</span>
+        }
+        //error set by name above so no need to explicitly return it
+        <span class="cov10" title="9">return err</span>
+}
+
+// CheckIfRequiredLabelsPresent checks if nodes are already labeled with the required labels
+func CheckIfRequiredLabelsPresent(labelMap map[string]string) bool <span class="cov3" title="2">{
+        if _, ok := labelMap[vpcBlockLabelKey]; ok </span><span class="cov1" title="1">{
+                return true
+        }</span>
+        <span class="cov1" title="1">return false</span>
+}
+
+// GetWorkerDetails ...
+func (c *VpcNodeLabelUpdater) GetWorkerDetails(workerNodeName string) (*NodeInfo, error) <span class="cov5" title="3">{
+        if net.ParseIP(workerNodeName) == nil </span><span class="cov5" title="3">{
+                c.Logger.Info("Worker Node Name is not in ip format. Getting instance detail by name from vpc provider")
+                return c.GetInstanceByName(workerNodeName)
+        }</span>
+        <span class="cov0" title="0">c.Logger.Info("Worker Node Name is in ip format. Getting instance detail by ipv4 from vpc provider")
+        return c.GetInstanceByIP(workerNodeName)</span>
+}
+
+// GetInstancesFromVPC ...
+func (c *VpcNodeLabelUpdater) GetInstancesFromVPC(riaasInstanceURL *url.URL) ([]*Instance, error) <span class="cov8" title="6">{
+        c.Logger.Info("Getting instance List from VPC provider")
+
+        instanceReq := &amp;http.Request{
+                Method: "GET",
+                URL:    riaasInstanceURL,
+                Header: map[string][]string{
+                        "Content-Type":  {"application/json"},
+                        "Accept":        {"application/json"},
+                        "Authorization": {c.StorageSecretConfig.IAMAccessToken},
+                },
+        }
+        var instanceResponse *http.Response
+        var err error
+
+        err = ErrorRetry(c.Logger, func() (error, bool) </span><span class="cov8" title="6">{
+                instanceResponse, err = http.DefaultClient.Do(instanceReq) //nolint
+                return err, !iam.IsConnectionError(err)                    // Skip retry if its not connection error
+        }</span>)
+
+        <span class="cov8" title="6">if err != nil </span><span class="cov6" title="4">{
+                return nil, err
+        }</span>
+        <span class="cov3" title="2">defer instanceResponse.Body.Close()
+        // read response body
+        instance, err := ioutil.ReadAll(instanceResponse.Body)
+        if err != nil </span><span class="cov0" title="0">{
+                c.Logger.Error("Failed to read response body of instance details from riaas provider", zap.Error(err))
+                return nil, err
+        }</span>
+        <span class="cov3" title="2">var instanceList InstanceList
+        err = json.Unmarshal(instance, &amp;instanceList)
+        if err != nil </span><span class="cov3" title="2">{
+                return nil, errors.New("failed to unmarshal json response of instances")
+        }</span>
+        <span class="cov0" title="0">if len(instanceList.Instances) == 0 </span><span class="cov0" title="0">{
+                return nil, errors.New("failed to get worker details as instance list is empty")
+        }</span>
+        <span class="cov0" title="0">return instanceList.Instances, nil</span>
+}
+
+// GetInstanceByIP ...
+func (c *VpcNodeLabelUpdater) GetInstanceByIP(workerNodeName string) (*NodeInfo, error) <span class="cov0" title="0">{
+        c.Logger.Info("Getting InstanceList from VPC provider...")
+
+        instanceList, err := c.GetInstancesFromVPC(c.StorageSecretConfig.RiaasEndpointURL)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">for _, instanceItem := range instanceList </span><span class="cov0" title="0">{
+                // Check if worker IP is matching with requested worker node name
+                if instanceItem.PrimaryNetworkInterface.PrimaryIpv4Address == workerNodeName </span><span class="cov0" title="0">{
+                        c.Logger.Info("Successfully found instance", zap.Reflect("instanceDetail", instanceItem))
+                        return c.getNodeInfo(instanceItem), nil
+                }</span>
+        }
+        <span class="cov0" title="0">err = fmt.Errorf("failed to get worker details, worker with name %s was not found in the instanceList fetched from vpc provider", workerNodeName)
+        return nil, err</span>
+}
+
+// GetInstanceByName ...
+func (c *VpcNodeLabelUpdater) GetInstanceByName(workerNodeName string) (*NodeInfo, error) <span class="cov5" title="3">{
+        c.Logger.Info("Getting InstanceList from VPC provider...")
+
+        riaasInstanceURL := c.StorageSecretConfig.RiaasEndpointURL
+        q := riaasInstanceURL.Query()
+        q.Add("name", workerNodeName)
+        c.StorageSecretConfig.RiaasEndpointURL.RawQuery = q.Encode()
+
+        instanceList, err := c.GetInstancesFromVPC(riaasInstanceURL)
+        if err != nil </span><span class="cov5" title="3">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">return c.getNodeInfo(instanceList[0]), nil</span>
+}
+
+func (c *VpcNodeLabelUpdater) getNodeInfo(instance *Instance) *NodeInfo <span class="cov1" title="1">{
+        insID := instance.ID
+        zone := instance.Zone.Name
+        lastInd := strings.LastIndex(zone, "-")
+        region := zone[:lastInd]
+
+        nodeDetails := &amp;NodeInfo{
+                InstanceID: insID,
+                Zone:       zone,
+                Region:     region,
+        }
+        c.Logger.Info("Successfully fetched node detail from VPC provider", zap.Reflect("nodeDetails", nodeDetails))
+        return nodeDetails
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
