@@ -56,15 +56,20 @@ func initNodeLabelUpdater(t *testing.T) *VpcNodeLabelUpdater {
 	return mockVPCNodeLabelUpdater
 }
 
-func createStorageSecretStore(k8sClient kubernetes.Interface, tLogger *zap.Logger) (*v1.Secret, error) {
+// createStorageSecretStoreSLClient creates k8s secret object with fake slclient.toml
+func createStorageSecretStoreSLClient(k8sClient kubernetes.Interface, tLogger *zap.Logger) (*v1.Secret, error) {
 	pwd, err := os.Getwd()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get current working directory, some unit tests will fail.")
 	}
 
 	// As its required by NewIBMCloudStorageProvider
-	secretConfigPath := filepath.Join(pwd, "..", "..", "test-fixtures", "slclient.toml")
-
+	secretConfigDir := filepath.Join(pwd, "..", "..", "test-fixtures")
+	secretConfigPath := filepath.Join(secretConfigDir, "slclient.toml")
+	err = os.Setenv("SECRET_CONFIG_PATH", secretConfigDir)
+	if err != nil {
+		return nil, fmt.Errorf("This test will fail because of %v", err)
+	}
 	// get the sample bluemix config
 	bluemixConfig, err := readConfig(secretConfigPath, tLogger)
 	if err != nil {
@@ -92,12 +97,32 @@ func createStorageSecretStore(k8sClient kubernetes.Interface, tLogger *zap.Logge
 	return createdSecret, nil
 }
 
+// createStorageSecretStoreData creates k8s secret object with key value data.
+func createStorageSecretStoreData(k8sClient kubernetes.Interface, logger *zap.Logger) (*v1.Secret, error) {
+	// create storage-secret-store secret in kube-system ns.
+	newSecret := &v1.Secret{
+		Data: make(map[string][]byte),
+	}
+	newSecret.SetName(StorageSecretStore)
+
+	newSecret.Data[G2APIKeyConf] = []byte("bXlLZXkK") // Encoded value of string "myKey"
+	newSecret.Data[G2TokenExchangeEndpoinrURLConf] = []byte("token_exchange_url")
+	newSecret.Data[G2RiaasEndpointURLConf] = []byte("endpoint_url")
+	newSecret.Data[G2ResourceGroupIDConf] = []byte("")
+	createdSecret, err := k8sClient.CoreV1().Secrets(KubeSystemNS).Create(context.TODO(), newSecret, metav1.CreateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create secret %s: %v", newSecret.Name, err)
+	}
+
+	return createdSecret, nil
+}
+
 func TestGetStorageSecretStore(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
 	logger, teardown := GetTestLogger(t)
 	defer teardown()
 
-	_, err := createStorageSecretStore(clientset, logger)
+	_, err := createStorageSecretStoreSLClient(clientset, logger)
 	if err != nil {
 		t.Fatalf("error creating fake storage-secret-store secret: %+v", err)
 	}
@@ -110,13 +135,28 @@ func TestReadStorageSecretConfiguration(t *testing.T) {
 	logger, teardown := GetTestLogger(t)
 	defer teardown()
 
+	// Create secret with slclient.toml stringData
 	clientset := fake.NewSimpleClientset()
-	fakeSecret, err := createStorageSecretStore(clientset, logger)
+	fakeSecret, err := createStorageSecretStoreSLClient(clientset, logger)
 	if err != nil {
 		t.Fatalf("error creating fake storage-secret-store secret: %+v", err)
 	}
+	defer os.Unsetenv("SECRET_CONFIG_PATH")
 	_, err = ReadStorageSecretConfiguration(fakeSecret, logger)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
+
+	err = clientset.CoreV1().Secrets(KubeSystemNS).Delete(context.TODO(), StorageSecretStore, metav1.DeleteOptions{})
+	if err != nil {
+		t.Fatalf("error deleting secret storage-secret-store: %+v", err)
+	}
+
+	// Create secret with key value pair data
+	fakeSatSecret, err := createStorageSecretStoreData(clientset, logger)
+	if err != nil {
+		t.Fatalf("error creating fake storage-sat-secret secret: %+v", err)
+	}
+	_, err = ReadStorageSecretConfiguration(fakeSatSecret, logger)
+	assert.Nil(t, err)
 }
 
 func TestGetAccessToken(t *testing.T) {

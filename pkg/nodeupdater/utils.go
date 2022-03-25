@@ -86,7 +86,14 @@ func GetStorageSecretStore(k8sClient kubernetes.Interface) (*v1.Secret, error) {
 
 // ReadStorageSecretConfiguration ...
 func ReadStorageSecretConfiguration(storageSecretStore *v1.Secret, ctxLogger *zap.Logger) (*StorageSecretConfig, error) {
-	var conf *config.Config
+	var conf *config.Config = &config.Config{
+		Server: &config.ServerConfig{},
+		//Bluemix:   &config.BluemixConfig{},
+		//Softlayer: &config.SoftlayerConfig{},
+		VPC: &config.VPCProviderConfig{},
+		//IKS:       &config.IKSConfig{},
+		//API:       &config.APIConfig{},
+	}
 	var err error
 	// extract storage config from the secret
 	_, okSLClient := storageSecretStore.StringData[StorageStoreMapKey]
@@ -139,7 +146,6 @@ func ReadStorageSecretConfiguration(storageSecretStore *v1.Secret, ctxLogger *za
 		RiaasEndpointURL:    riaasInstanceURL,
 		BasicAuthString:     fmt.Sprintf("%s:%s", conf.VPC.IamClientID, conf.VPC.IamClientSecret),
 	}
-
 	accessToken, err := storageSecretConfig.GetAccessToken(ctxLogger)
 	if err != nil {
 		ctxLogger.Error("Failed to Get IAM access token", zap.Error(err))
