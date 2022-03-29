@@ -133,15 +133,8 @@ func main() {
 		return
 	}
 
-	var k8sClient kubernetes.Interface
-	storageSecretStore, err := nodeupdater.GetStorageSecretStore(k8sClient)
-	if err != nil {
-		logger.Error("Storage secret store not present", zap.Error(err))
-		return
-	}
-
 	var secretConfig *nodeupdater.StorageSecretConfig
-	if secretConfig, err = nodeupdater.ReadStorageSecretConfiguration(storageSecretStore, logger); err != nil {
+	if secretConfig, err = nodeupdater.ReadStorageSecretConfiguration(logger); err != nil {
 		logger.Fatal("Failed to read secret configuration from storage secret present in the cluster ", zap.Error(err))
 	}
 	c := &nodeupdater.VpcNodeLabelUpdater{

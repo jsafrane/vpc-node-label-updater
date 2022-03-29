@@ -18,7 +18,6 @@
 package nodeupdater
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	errors "errors"
@@ -27,6 +26,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -35,9 +35,6 @@ import (
 	"github.com/IBM/ibmcloud-volume-interface/config"
 	"github.com/IBM/ibmcloud-volume-interface/provider/iam"
 	"go.uber.org/zap"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -79,59 +76,22 @@ const (
 	G2ResourceGroupIDConf string = "g2_resource_group_id"
 )
 
-// GetStorageSecretStore ...
-func GetStorageSecretStore(k8sClient kubernetes.Interface) (*v1.Secret, error) {
-	return k8sClient.CoreV1().Secrets(KubeSystemNS).Get(context.TODO(), StorageSecretStore, metav1.GetOptions{})
-}
-
 // ReadStorageSecretConfiguration ...
-func ReadStorageSecretConfiguration(storageSecretStore *v1.Secret, ctxLogger *zap.Logger) (*StorageSecretConfig, error) {
-	var conf *config.Config = &config.Config{
-		Server: &config.ServerConfig{},
-		//Bluemix:   &config.BluemixConfig{},
-		//Softlayer: &config.SoftlayerConfig{},
-		VPC: &config.VPCProviderConfig{},
-		//IKS:       &config.IKSConfig{},
-		//API:       &config.APIConfig{},
+func ReadStorageSecretConfiguration(ctxLogger *zap.Logger) (*StorageSecretConfig, error) {
+	configPath := filepath.Join(config.GetConfPathDir(), configFileName)
+	conf, err := readConfig(configPath, ctxLogger)
+	if err != nil {
+		ctxLogger.Info("Error loading secret configuration")
+		return nil, err
 	}
-	var err error
-	// extract storage config from the secret
-	_, okSLClient := storageSecretStore.StringData[StorageStoreMapKey]
-	if !okSLClient {
-		apiKey, okAPIKey := storageSecretStore.Data[G2APIKeyConf]
-		g2TokenExchangeEndpoinrURL, okG2TokenExchangeEndpoinrURL := storageSecretStore.Data[G2TokenExchangeEndpoinrURLConf]
-		g2RiaasEndpointURL, okG2RiaasEndpointURL := storageSecretStore.Data[G2RiaasEndpointURLConf]
-		g2ResourceGroupID, okG2ResourceGroupIDConf := storageSecretStore.Data[G2ResourceGroupIDConf]
-		if okAPIKey {
-			conf.VPC.G2APIKey = string(apiKey)
-		}
-		if okG2TokenExchangeEndpoinrURL {
-			conf.VPC.G2TokenExchangeURL = string(g2TokenExchangeEndpoinrURL)
-		}
-		if okG2RiaasEndpointURL {
-			conf.VPC.G2EndpointURL = string(g2RiaasEndpointURL)
-		}
-		if okG2ResourceGroupIDConf {
-			conf.VPC.G2ResourceGroupID = string(g2ResourceGroupID)
-		}
 
-		conf.VPC.IamClientID = iamClientID
-		conf.VPC.IamClientSecret = iamClientSecret
-		conf.VPC.VPCBlockProviderType = providerType
-		conf.Server.DebugTrace = false
-
-	} else {
-		configPath := filepath.Join(config.GetConfPathDir(), configFileName)
-		conf, err = readConfig(configPath, ctxLogger)
+	//Decode g2 API Key if it is a satellite cluster.
+	if is_satellite := os.Getenv(strings.ToUpper("IS_SATELLITE")); is_satellite == "True" {
+		apiKey, err := base64.StdEncoding.DecodeString(conf.VPC.G2APIKey)
 		if err != nil {
-			ctxLogger.Info("Error loading secret configuration")
 			return nil, err
 		}
-	}
-
-	// Throw error if config is empty
-	if conf == nil {
-		return nil, fmt.Errorf("Unable to load config")
+		conf.VPC.G2APIKey = string(apiKey)
 	}
 
 	riaasInstanceURL, err := url.Parse(fmt.Sprintf("%s/v1/instances?generation=%s&version=%s", conf.VPC.G2EndpointURL, vpcGeneration, vpcRiaasVersion))
