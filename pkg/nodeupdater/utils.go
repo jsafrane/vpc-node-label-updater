@@ -49,31 +49,6 @@ const (
 	maxAttempts            = 30
 	retryInterval          = "10s"
 	vpcBlockLabelKey       = "vpc-block-csi-driver-labels"
-	iamClientID            = "bx"
-	iamClientSecret        = "bx"
-	providerType           = "g2"
-
-	// KubeSystemNS is the constant for kube-system namespace.
-	KubeSystemNS string = "kube-system"
-
-	// StorageSecretStore is the storage secret that stores storage related details such as
-	// containers private api route, etc.
-	StorageSecretStore string = "storage-secret-store"
-
-	// StorageStoreMapKey ...
-	StorageStoreMapKey string = "slclient.toml"
-
-	//IamAPIKeyConf is the env that stores the value of iam_api_key
-	G2APIKeyConf string = "g2_api_key"
-
-	//G2TokenExchangeEndpoinrURLConf is the env that stores the values of g2_token_exchange_endpoint_url
-	G2TokenExchangeEndpoinrURLConf string = "g2_token_exchange_endpoint_url"
-
-	//G2RiaasEndpointURLConf is the env that stores the values of g2_riaas_endpoint_url
-	G2RiaasEndpointURLConf string = "g2_riaas_endpoint_url"
-
-	//G2ResourceGroupIDConf is the env that stores the values of g2_riaas_endpoint_url
-	G2ResourceGroupIDConf string = "g2_resource_group_id"
 )
 
 // ReadStorageSecretConfiguration ...
