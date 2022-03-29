@@ -70,7 +70,6 @@ func TestReadStorageSecretConfiguration(t *testing.T) {
 
 	_, err = ReadStorageSecretConfiguration(logger)
 	assert.NotNil(t, err)
-
 }
 
 func TestGetAccessToken(t *testing.T) {

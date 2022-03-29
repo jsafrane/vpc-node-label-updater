@@ -81,6 +81,7 @@ func ReadStorageSecretConfiguration(ctxLogger *zap.Logger) (*StorageSecretConfig
 		RiaasEndpointURL:    riaasInstanceURL,
 		BasicAuthString:     fmt.Sprintf("%s:%s", conf.VPC.IamClientID, conf.VPC.IamClientSecret),
 	}
+
 	accessToken, err := storageSecretConfig.GetAccessToken(ctxLogger)
 	if err != nil {
 		ctxLogger.Error("Failed to Get IAM access token", zap.Error(err))
