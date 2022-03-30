@@ -53,6 +53,7 @@ const (
 
 // ReadStorageSecretConfiguration ...
 func ReadStorageSecretConfiguration(ctxLogger *zap.Logger) (*StorageSecretConfig, error) {
+	ctxLogger.Info("Fetching secret configuration.")
 	configPath := filepath.Join(config.GetConfPathDir(), configFileName)
 	conf, err := readConfig(configPath, ctxLogger)
 	if err != nil {
@@ -62,6 +63,7 @@ func ReadStorageSecretConfiguration(ctxLogger *zap.Logger) (*StorageSecretConfig
 
 	//Decode g2 API Key if it is a satellite cluster.
 	if is_satellite := os.Getenv(strings.ToUpper("IS_SATELLITE")); is_satellite == "True" {
+		ctxLogger.Info("Decoding apiKey since its a satellite cluster")
 		apiKey, err := base64.StdEncoding.DecodeString(conf.VPC.G2APIKey)
 		if err != nil {
 			return nil, err
