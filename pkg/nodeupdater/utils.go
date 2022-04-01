@@ -71,6 +71,18 @@ func ReadStorageSecretConfiguration(ctxLogger *zap.Logger) (*StorageSecretConfig
 		conf.VPC.G2APIKey = string(apiKey)
 	}
 
+	// Correct if the G2EndpointURL is of the form "http://".
+	if strings.Contains(conf.VPC.G2EndpointURL, "http") && !strings.Contains(conf.VPC.G2EndpointURL, "https") {
+		ctxLogger.Warn("Riaas endpoint URL is of the form 'http' instead 'https'. Correcting it for valid request.", zap.Reflect("Endpoint URL: ", conf.VPC.G2EndpointURL))
+		conf.VPC.G2EndpointURL = strings.Replace(conf.VPC.G2EndpointURL, "http", "https", 1)
+	}
+
+	// Correct if the G2TokenExchangeURL is of the form "http://"
+	if strings.Contains(conf.VPC.G2TokenExchangeURL, "http") && !strings.Contains(conf.VPC.G2TokenExchangeURL, "https") {
+		ctxLogger.Warn("Token exhange endpoint URL is of the form 'http' instead 'https'. Correcting it for valid request.", zap.Reflect("Endpoint URL: ", conf.VPC.G2TokenExchangeURL))
+		conf.VPC.G2TokenExchangeURL = strings.Replace(conf.VPC.G2TokenExchangeURL, "http", "https", 1)
+	}
+
 	riaasInstanceURL, err := url.Parse(fmt.Sprintf("%s/v1/instances?generation=%s&version=%s", conf.VPC.G2EndpointURL, vpcGeneration, vpcRiaasVersion))
 	if err != nil {
 		ctxLogger.Error("Failed to parse riassInstanceURL", zap.Error(err))
