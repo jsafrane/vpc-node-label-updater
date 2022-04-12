@@ -461,3 +461,35 @@ func TestGetNodeInfo(t *testing.T) {
 		continue
 	}
 }
+
+func TestCorrectEndpointURL(t *testing.T) {
+	testCases := []struct {
+		name      string
+		url       string
+		returnURL string
+	}{
+		{
+			name:      "URL of http form",
+			url:       "http://example.com",
+			returnURL: "https://example.com",
+		},
+		{
+			name:      "URL of https form",
+			url:       "https://example.com",
+			returnURL: "https://example.com",
+		},
+		{
+			name:      "Incorrect URL",
+			url:       "xyz.com",
+			returnURL: "xyz.com",
+		},
+	}
+	logger, teardown := GetTestLogger(t)
+	defer teardown()
+
+	for _, tc := range testCases {
+		t.Logf("Test case: %s", tc.name)
+		url := CorrectEndpointURL(tc.url, logger)
+		assert.Equal(t, tc.returnURL, url)
+	}
+}
