@@ -483,13 +483,18 @@ func TestCorrectEndpointURL(t *testing.T) {
 			url:       "xyz.com",
 			returnURL: "xyz.com",
 		},
+		{
+			name:      "Incorrect URL",
+			url:       "httpd://xyz.com",
+			returnURL: "httpd://xyz.com",
+		},
 	}
 	logger, teardown := GetTestLogger(t)
 	defer teardown()
 
 	for _, tc := range testCases {
 		t.Logf("Test case: %s", tc.name)
-		url := CorrectEndpointURL(tc.url, logger)
+		url := getEndpointURL(tc.url, logger)
 		assert.Equal(t, tc.returnURL, url)
 	}
 }

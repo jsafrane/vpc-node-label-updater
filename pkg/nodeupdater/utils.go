@@ -72,10 +72,10 @@ func ReadStorageSecretConfiguration(ctxLogger *zap.Logger) (*StorageSecretConfig
 	}
 
 	// Correct if the G2EndpointURL is of the form "http://".
-	conf.VPC.G2EndpointURL = CorrectEndpointURL(conf.VPC.G2EndpointURL, ctxLogger)
+	conf.VPC.G2EndpointURL = getEndpointURL(conf.VPC.G2EndpointURL, ctxLogger)
 
 	// Correct if the G2TokenExchangeURL is of the form "http://"
-	conf.VPC.G2TokenExchangeURL = CorrectEndpointURL(conf.VPC.G2TokenExchangeURL, ctxLogger)
+	conf.VPC.G2TokenExchangeURL = getEndpointURL(conf.VPC.G2TokenExchangeURL, ctxLogger)
 
 	riaasInstanceURL, err := url.Parse(fmt.Sprintf("%s/v1/instances?generation=%s&version=%s", conf.VPC.G2EndpointURL, vpcGeneration, vpcRiaasVersion))
 	if err != nil {
@@ -197,8 +197,8 @@ func CheckIfRequiredLabelsPresent(labelMap map[string]string) bool {
 	return false
 }
 
-// CorrectEndpointURL corrects endpoint url if it is of form "http://"
-func CorrectEndpointURL(url string, logger *zap.Logger) string {
+// getEndpointURL corrects endpoint url if it is of form "http://"
+func getEndpointURL(url string, logger *zap.Logger) string {
 	if strings.Contains(url, "http://") {
 		logger.Warn("Token exchange endpoint URL is of the form 'http' instead 'https'. Correcting it for valid request.", zap.Reflect("Endpoint URL: ", url))
 		return strings.Replace(url, "http", "https", 1)
