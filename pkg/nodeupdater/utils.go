@@ -38,7 +38,7 @@ import (
 )
 
 const (
-	workerIDLabelKey       = "ibm-cloud.kubernetes.io/vpc-instance-id"
+	instanceIDLabelKey     = "ibm-cloud.kubernetes.io/vpc-instance-id"
 	failureRegionLabelKey  = "failure-domain.beta.kubernetes.io/region"
 	failureZoneLabelKey    = "failure-domain.beta.kubernetes.io/zone"
 	topologyRegionLabelKey = "topology.kubernetes.io/region"
@@ -191,7 +191,12 @@ func ErrorRetry(logger *zap.Logger, funcToRetry func() (error, bool)) error {
 
 // CheckIfRequiredLabelsPresent checks if nodes are already labeled with the required labels
 func CheckIfRequiredLabelsPresent(labelMap map[string]string) bool {
-	if _, ok := labelMap[vpcBlockLabelKey]; ok {
+	_, okvpcBlockLabelKey := labelMap[vpcBlockLabelKey]
+	_, okvpcInstanceID := labelMap[instanceIDLabelKey]
+	/* For users using version <=4.2.2, need to check for both label vpcBlockLabelKey and instanceIDLabelKey
+	TODO: Keep only check for vpcBlockLabelKey when version 4.2.2 is removed
+	*/
+	if okvpcBlockLabelKey && okvpcInstanceID {
 		return true
 	}
 	return false
