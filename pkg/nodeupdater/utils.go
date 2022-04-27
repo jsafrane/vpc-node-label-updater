@@ -61,8 +61,8 @@ func ReadStorageSecretConfiguration(ctxLogger *zap.Logger) (*StorageSecretConfig
 		return nil, err
 	}
 
-	//Decode g2 API Key if it is a satellite cluster.
-	if os.Getenv(strings.ToUpper("IKS_ENABLED")) == "False" {
+	// Decode g2 API Key if it is a satellite cluster.(unmanaged cluster)
+	if os.Getenv(strings.ToUpper("IKS_ENABLED")) != "True" && os.Getenv(strings.ToUpper("IS_SATELLITE")) == "True" {
 		ctxLogger.Info("Decoding apiKey since its a satellite cluster")
 		apiKey, err := base64.StdEncoding.DecodeString(conf.VPC.G2APIKey)
 		if err != nil {
@@ -122,6 +122,13 @@ func (secretConfig *StorageSecretConfig) GetAccessToken(ctxLogger *zap.Logger) (
 	if err != nil {
 		return "", err
 	}
+
+	ctxLogger.Info("Status Code", zap.Reflect("status code", res.StatusCode))
+	if res == nil || res.StatusCode != 200 {
+		ctxLogger.Error("IAM token exchange request failed")
+		return "", fmt.Errorf("status Code: %v, check API key providied", res.StatusCode)
+	}
+
 	// read response body
 	accessTokenRes, err := ioutil.ReadAll(res.Body)
 	if err != nil {
