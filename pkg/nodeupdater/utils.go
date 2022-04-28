@@ -123,7 +123,6 @@ func (secretConfig *StorageSecretConfig) GetAccessToken(ctxLogger *zap.Logger) (
 		return "", err
 	}
 
-	ctxLogger.Info("Status Code", zap.Reflect("status code", res.StatusCode))
 	if res == nil || res.StatusCode != 200 {
 		ctxLogger.Error("IAM token exchange request failed")
 		return "", fmt.Errorf("status Code: %v, check API key providied", res.StatusCode)
