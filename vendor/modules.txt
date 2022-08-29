@@ -15,11 +15,11 @@ github.com/IBM/ibmcloud-volume-interface/lib/provider
 github.com/IBM/ibmcloud-volume-interface/lib/utils
 github.com/IBM/ibmcloud-volume-interface/lib/utils/reasoncode
 github.com/IBM/ibmcloud-volume-interface/provider/iam
-# github.com/IBM/secret-common-lib v1.0.4-0.20220802111448-77a333181b58
+# github.com/IBM/secret-common-lib v1.0.4-0.20220823024202-b6a95fb66b50
 ## explicit; go 1.16
 github.com/IBM/secret-common-lib/pkg/secret_provider
 github.com/IBM/secret-common-lib/pkg/utils
-# github.com/IBM/secret-utils-lib v1.0.3-0.20220802093525-9274da516ad4
+# github.com/IBM/secret-utils-lib v1.0.3-0.20220822070217-4b66786cdf09
 ## explicit; go 1.16
 github.com/IBM/secret-utils-lib/pkg/authenticator
 github.com/IBM/secret-utils-lib/pkg/config
