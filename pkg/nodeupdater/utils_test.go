@@ -49,25 +49,16 @@ func initNodeLabelUpdater(t *testing.T) *VpcNodeLabelUpdater {
 	return mockVPCNodeLabelUpdater
 }
 
-func TestReadStorageSecretConfiguration(t *testing.T) {
+func TestReadSecretConfiguration(t *testing.T) {
 	// Creating test logger
 	logger, teardown := GetTestLogger(t)
 	defer teardown()
 
-	pwd, err := os.Getwd()
-	if err != nil {
-		t.Errorf("Failed to get current working directory, some unit tests will fail")
-	}
-
-	// As its required by NewIBMCloudStorageProvider
-	secretConfigPath := filepath.Join(pwd, "..", "..", "test-fixtures")
-	err = os.Setenv("SECRET_CONFIG_PATH", secretConfigPath)
-	defer os.Unsetenv("SECRET_CONFIG_PATH")
 	if err != nil {
 		t.Errorf("This test will fail because of %v", err)
 	}
 
-	_, err = ReadStorageSecretConfiguration(logger)
+	_, err = ReadSecretConfiguration(logger)
 	assert.NotNil(t, err)
 }
 

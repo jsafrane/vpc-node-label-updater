@@ -48,8 +48,8 @@ const (
 	vpcBlockLabelKey       = "vpc-block-csi-driver-labels"
 )
 
-// ReadStorageSecretConfiguration ...
-func ReadStorageSecretConfiguration(ctxLogger *zap.Logger) (*StorageSecretConfig, error) {
+// ReadSecretConfiguration ...
+func ReadSecretConfiguration(ctxLogger *zap.Logger) (*StorageSecretConfig, error) {
 	ctxLogger.Info("Fetching secret configuration.")
 	spObject, err := sp.NewSecretProvider(sp.VPC)
 	if err != nil {
