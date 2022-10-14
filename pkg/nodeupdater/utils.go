@@ -74,8 +74,7 @@ func ReadSecretConfiguration(ctxLogger *zap.Logger) (*StorageSecretConfig, error
 		RiaasEndpointURL: riaasInstanceURL,
 	}
 
-	// TODO - send appropriate reason for call
-	accessToken, _, err := spObject.GetDefaultIAMToken("reason", false)
+	accessToken, _, err := spObject.GetDefaultIAMToken("vpc-node-label-updater", false)
 	if err != nil {
 		ctxLogger.Error("Failed to Get IAM access token", zap.Error(err))
 		return nil, err
