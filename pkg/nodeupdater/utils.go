@@ -51,7 +51,10 @@ const (
 // ReadSecretConfiguration ...
 func ReadSecretConfiguration(ctxLogger *zap.Logger) (*StorageSecretConfig, error) {
 	ctxLogger.Info("Fetching secret configuration.")
-	spObject, err := sp.NewSecretProvider(sp.VPC)
+	providerType := map[string]string{
+		sp.ProviderType: sp.VPC,
+	}
+	spObject, err := sp.NewSecretProvider(providerType)
 	if err != nil {
 		ctxLogger.Error("Error initializing secret provider", zap.Error(err))
 		return nil, err
@@ -74,7 +77,7 @@ func ReadSecretConfiguration(ctxLogger *zap.Logger) (*StorageSecretConfig, error
 		RiaasEndpointURL: riaasInstanceURL,
 	}
 
-	accessToken, _, err := spObject.GetDefaultIAMToken("vpc-node-label-updater", false)
+	accessToken, _, err := spObject.GetDefaultIAMToken(false, "vpc-node-label-updater")
 	if err != nil {
 		ctxLogger.Error("Failed to Get IAM access token", zap.Error(err))
 		return nil, err

@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/IBM/ibmcloud-volume-interface v1.0.0-beta8
-	github.com/IBM/secret-common-lib v1.0.4
+	github.com/IBM/secret-common-lib v1.0.5
 	github.com/stretchr/testify v1.7.0
 	go.uber.org/zap v1.20.0
 	k8s.io/api v0.21.0
@@ -16,7 +16,7 @@ require (
 	github.com/BurntSushi/toml v1.0.0 // indirect
 	github.com/IBM-Cloud/ibm-cloud-cli-sdk v0.6.7 // indirect
 	github.com/IBM/go-sdk-core/v5 v5.9.1 // indirect
-	github.com/IBM/secret-utils-lib v1.0.3 // indirect
+	github.com/IBM/secret-utils-lib v1.0.4 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
