@@ -8,7 +8,7 @@ github.com/IBM-Cloud/ibm-cloud-cli-sdk/common/rest
 # github.com/IBM/go-sdk-core/v5 v5.9.1
 ## explicit; go 1.14
 github.com/IBM/go-sdk-core/v5/core
-# github.com/IBM/ibmcloud-volume-interface v1.1.1
+# github.com/IBM/ibmcloud-volume-interface v1.1.2-0.20230116094327-084d382598e9
 ## explicit; go 1.18
 github.com/IBM/ibmcloud-volume-interface/config
 github.com/IBM/ibmcloud-volume-interface/lib/provider
