@@ -56,28 +56,6 @@ func TestReadSecretConfiguration(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-type testConfig struct {
-	Header sectionTestConfig
-}
-
-type sectionTestConfig struct {
-	ID      int
-	Name    string
-	YesOrNo bool
-	Pi      float64
-	List    string
-}
-
-var testConf = testConfig{
-	Header: sectionTestConfig{
-		ID:      1,
-		Name:    "test",
-		YesOrNo: true,
-		Pi:      3.14,
-		List:    "1, 2",
-	},
-}
-
 func TestCheckIfRequiredLabelsPresent(t *testing.T) {
 	labelMap := make(map[string]string)
 	exp := CheckIfRequiredLabelsPresent(labelMap)

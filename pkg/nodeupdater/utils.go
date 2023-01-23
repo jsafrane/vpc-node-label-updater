@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package nodeupdater ...
+// Package nodeupdater ...
 package nodeupdater
 
 import (
@@ -40,7 +40,6 @@ const (
 	failureZoneLabelKey    = "failure-domain.beta.kubernetes.io/zone"
 	topologyRegionLabelKey = "topology.kubernetes.io/region"
 	topologyZoneLabelKey   = "topology.kubernetes.io/zone"
-	configFileName         = "slclient.toml"
 	vpcGeneration          = "2"
 	vpcRiaasVersion        = "2020-01-01"
 	maxAttempts            = 30
