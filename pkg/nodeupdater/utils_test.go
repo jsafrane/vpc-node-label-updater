@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-//Package nodeupdater ...
+// Package nodeupdater ...
 package nodeupdater
 
 import (
 	errors "errors"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -54,11 +52,7 @@ func TestReadSecretConfiguration(t *testing.T) {
 	logger, teardown := GetTestLogger(t)
 	defer teardown()
 
-	if err != nil {
-		t.Errorf("This test will fail because of %v", err)
-	}
-
-	_, err = ReadSecretConfiguration(logger)
+	_, err := ReadSecretConfiguration(logger)
 	assert.NotNil(t, err)
 }
 
