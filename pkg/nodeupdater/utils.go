@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 	errors "errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -171,7 +171,7 @@ func (c *VpcNodeLabelUpdater) GetInstancesFromVPC(riaasInstanceURL *url.URL) ([]
 	}
 	defer instanceResponse.Body.Close()
 	// read response body
-	instance, err := ioutil.ReadAll(instanceResponse.Body)
+	instance, err := io.ReadAll(instanceResponse.Body)
 	if err != nil {
 		c.Logger.Error("Failed to read response body of instance details from riaas provider", zap.Error(err))
 		return nil, err
